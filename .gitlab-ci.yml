@@ -1,0 +1,34 @@
+image:
+  name: node:22-alpine
+
+stages:
+  - test
+  - build
+
+test:
+  stage: test
+  before_script:
+    - npm ci
+  script:
+    - npm run lint
+    - npm run test:cov
+  artifacts:
+    when: always
+    paths:
+      - coverage
+    expire_in: 30 days
+  tags:
+    - docker-runner-gcp
+
+build:
+  stage: build
+  before_script:
+    - npm ci
+  script:
+    - npm run build
+  only:
+    refs:
+      - master
+      - main
+  tags:
+    - docker-runner-gcp

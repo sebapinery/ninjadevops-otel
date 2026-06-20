@@ -1,0 +1,73 @@
+{
+  "name": "ninjadevops-otel",
+  "version": "0.1.0",
+  "description": "Tracing-only OpenTelemetry module for NestJS (TraceService, @Span, @Traceable).",
+  "author": "ninjadevops <sebapinery@gmail.com>",
+  "license": "UNLICENSED",
+  "private": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "prebuild": "rimraf dist",
+    "build": "rimraf dist && tsc",
+    "lint": "biome check src",
+    "format": "biome check --write src",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "release": "standard-version",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0"
+  },
+  "peerDependencies": {
+    "@nestjs/common": ">=11 <12",
+    "@nestjs/core": ">=11 <12",
+    "rxjs": "^7.1.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.0",
+    "@commitlint/cli": "^19.6.0",
+    "@commitlint/config-conventional": "^19.6.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/testing": "^11.0.0",
+    "@opentelemetry/context-async-hooks": "^2.8.0",
+    "@opentelemetry/sdk-trace-base": "^2.8.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.0",
+    "husky": "^9.1.0",
+    "jest": "^29.7.0",
+    "reflect-metadata": "^0.2.2",
+    "rimraf": "^6.0.0",
+    "rxjs": "^7.8.1",
+    "standard-version": "^9.5.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.0"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "src",
+    "testRegex": ".spec.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "**/*.ts",
+      "!**/*.spec.ts"
+    ],
+    "coverageDirectory": "../coverage",
+    "testEnvironment": "node"
+  }
+}
