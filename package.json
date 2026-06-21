@@ -2,8 +2,8 @@
   "name": "ninjadevops-otel",
   "version": "0.1.0",
   "description": "Tracing-only OpenTelemetry module for NestJS (TraceService, @Span, @Traceable).",
-  "author": "ninjadevops <sebapinery@gmail.com>",
-  "license": "UNLICENSED",
+  "author": "Seba Pinery <sebapinery@gmail.com> (https://sebapinery.sitereliabilityengineer.ing/)",
+  "license": "Apache-2.0",
   "private": false,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -25,7 +25,8 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.0"
+    "@opentelemetry/api": "^1.9.0",
+    "reflect-metadata": "^0.2.2"
   },
   "peerDependencies": {
     "@nestjs/common": ">=11 <12",
@@ -45,7 +46,6 @@
     "@types/node": "^22.10.0",
     "husky": "^9.1.0",
     "jest": "^29.7.0",
-    "reflect-metadata": "^0.2.2",
     "rimraf": "^6.0.0",
     "rxjs": "^7.8.1",
     "standard-version": "^9.5.0",

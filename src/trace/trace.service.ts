@@ -12,6 +12,11 @@ import {
   OTEL_TRACER_NAME,
 } from '../open-telemetry.constants';
 import type { OpenTelemetryModuleOptions } from '../open-telemetry.interfaces';
+import {
+  resolveSpanName,
+  type TelemetrySource,
+  toTelemetryAttributes,
+} from '../telemetry';
 
 /**
  * Thin, injectable wrapper around the OpenTelemetry tracing API.
@@ -84,6 +89,76 @@ export class TraceService {
         throw error;
       }
     });
+  }
+
+  /**
+   * Apply a declarative telemetry DTO (or a raw attribute map) to the **active**
+   * span. No-op when no span is in context, so it is always safe to call.
+   *
+   * ```ts
+   * this.trace.setAttributes(new LoginTelemetryDto(userId, email));
+   * this.trace.setAttributes({ 'app.order.id': orderId });
+   * ```
+   */
+  setAttributes(source: TelemetrySource): void {
+    const span = this.getSpan();
+    if (!span) {
+      return;
+    }
+    span.setAttributes(toTelemetryAttributes(source));
+  }
+
+  /**
+   * Open an active span pre-populated with a telemetry source's attributes, run
+   * `fn` inside it, and end it automatically — same async handling and error
+   * semantics as {@link startActiveSpan}.
+   *
+   * The span name comes from the DTO's `@TelemetryOperation` when present;
+   * otherwise the explicit `name` is used. Passing neither throws.
+   */
+  startActiveSpanWith<T>(
+    source: TelemetrySource,
+    fn: (span: Span) => T,
+    options?: SpanOptions,
+  ): T;
+  startActiveSpanWith<T>(
+    source: TelemetrySource,
+    name: string,
+    fn: (span: Span) => T,
+    options?: SpanOptions,
+  ): T;
+  startActiveSpanWith<T>(
+    source: TelemetrySource,
+    nameOrFn: string | ((span: Span) => T),
+    fnOrOptions?: ((span: Span) => T) | SpanOptions,
+    options: SpanOptions = {},
+  ): T {
+    let name: string | undefined;
+    let fn: (span: Span) => T;
+    let spanOptions: SpanOptions;
+
+    if (typeof nameOrFn === 'function') {
+      name = undefined;
+      fn = nameOrFn;
+      spanOptions = (fnOrOptions as SpanOptions) ?? {};
+    } else {
+      name = nameOrFn;
+      fn = fnOrOptions as (span: Span) => T;
+      spanOptions = options;
+    }
+
+    const spanName = resolveSpanName(source) ?? name;
+    if (!spanName) {
+      throw new Error(
+        'startActiveSpanWith requires a span name: pass one explicitly or annotate the DTO with @TelemetryOperation',
+      );
+    }
+
+    const attributes = {
+      ...spanOptions.attributes,
+      ...toTelemetryAttributes(source),
+    };
+    return this.startActiveSpan(spanName, fn, { ...spanOptions, attributes });
   }
 }
 
