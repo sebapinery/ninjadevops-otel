@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo_text.svg" width="320" alt="Nest Logo" /></a>
+  <a href="http://nestjs.com/" target="blank"><img src="./docs/banner.jpeg" width="800" alt="Nest Logo" /></a>
 </p>
 
 # ninjadevops-otel
