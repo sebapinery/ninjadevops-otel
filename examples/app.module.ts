@@ -17,6 +17,10 @@ import { OrdersService } from './orders/orders.service';
       useFactory: (config: ConfigService) => ({
         tracerName: config.get('OTEL_SERVICE_NAME') ?? 'demo',
         tracerVersion: config.get('APP_VERSION'),
+        // Zero-touch: every provider/controller method gets a span named
+        // `instance.method()` automatically. Methods with an explicit @Span or
+        // @NoSpan() are left alone.
+        autoInstrument: true,
       }),
     }),
   ],

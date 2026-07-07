@@ -1,6 +1,9 @@
 import { type SpanOptions, trace } from '@opentelemetry/api';
 import { isObservable, type Observable, tap } from 'rxjs';
-import { OTEL_TRACER_NAME } from '../open-telemetry.constants';
+import {
+  OTEL_SPAN_METADATA,
+  OTEL_TRACER_NAME,
+} from '../open-telemetry.constants';
 import { recordSpanError } from '../trace/trace.service';
 import { copyMethodMetadata } from './metadata.util';
 
@@ -62,6 +65,9 @@ export function Span(
     };
 
     copyMethodMetadata(original, descriptor.value);
+    // Mark the wrapper so auto-instrumentation skips methods with an explicit
+    // `@Span` and never double-wraps them.
+    Reflect.defineMetadata(OTEL_SPAN_METADATA, true, descriptor.value);
     return descriptor;
   };
 }

@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { SpanKind } from '@opentelemetry/api';
-import { Span, TraceService } from 'ninjadevops-otel';
+import { NoSpan, Span, TraceService } from 'ninjadevops-otel';
 
 @Injectable()
 export class OrdersService {
   constructor(private readonly trace: TraceService) {}
 
   /**
-   * `@Span()` opens an active span named "OrdersService.getById". Any nested
+   * No decorator needed: with `autoInstrument` enabled this method is wrapped
+   * automatically in an active span named "ordersService.getById()". Any nested
    * DB/HTTP call (already auto-instrumented) becomes a child of it. We enrich the
-   * span with a business attribute via the injected TraceService.
+   * active span with a business attribute via the injected TraceService.
    */
-  @Span()
   async getById(orderId: string) {
     this.trace.setAttributes({ 'app.order.id': orderId });
 
@@ -25,8 +25,8 @@ export class OrdersService {
   }
 
   /**
-   * Explicit span name + kind. Returning a Promise is fine — the span ends when
-   * it settles, and is marked ERROR if it rejects.
+   * An explicit `@Span` always wins over auto-instrumentation — use it when you
+   * want a custom name or span kind instead of the default `instance.method()`.
    */
   @Span('orders.checkout', { kind: SpanKind.INTERNAL })
   async checkout(orderId: string) {
@@ -34,6 +34,11 @@ export class OrdersService {
     return { ok: true };
   }
 
+  /**
+   * `@NoSpan()` opts a hot/trivial method out of auto-instrumentation to avoid
+   * span noise.
+   */
+  @NoSpan()
   private async loadFromDb(orderId: string) {
     return { id: orderId, total: 4200, currency: 'USD' };
   }
