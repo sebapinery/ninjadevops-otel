@@ -1,6 +1,30 @@
 import type { ModuleMetadata, Type } from '@nestjs/common';
 
 /**
+ * Fine-grained configuration for automatic span instrumentation.
+ */
+export interface AutoInstrumentOptions {
+  /**
+   * Classes to exclude wholesale (equivalent to annotating each with
+   * `@NoSpan()`). Accepts the class reference or its name.
+   */
+  exclude?: (Type | string)[];
+
+  /**
+   * Also wrap methods whose name starts with `_` (a common "private by
+   * convention" marker). Defaults to `false`.
+   */
+  includePrivate?: boolean;
+
+  /**
+   * Build the span name from the provider/controller class name and method
+   * name. Defaults to ``(cls, method) => `${lowerFirst(cls)}.${method}()` ``,
+   * e.g. `tokensService.revokeAllAccessToken()`.
+   */
+  naming?: (className: string, methodName: string) => string;
+}
+
+/**
  * Options for {@link OpenTelemetryModule}.
  *
  * This library is tracing-only and does **not** bootstrap the OpenTelemetry
@@ -20,6 +44,17 @@ export interface OpenTelemetryModuleOptions {
    * Version reported for the tracer (the instrumentation scope version).
    */
   tracerVersion?: string;
+
+  /**
+   * Automatically wrap every provider and controller method in a span at
+   * bootstrap, so services need no manual `@Span()`. Methods carrying an
+   * explicit `@Span`/`@Traceable` are left untouched, and anything marked with
+   * `@NoSpan()` is skipped.
+   *
+   * `true` enables it with defaults; pass an object to tune naming/exclusions.
+   * Defaults to `false` (opt-in).
+   */
+  autoInstrument?: boolean | AutoInstrumentOptions;
 }
 
 /**

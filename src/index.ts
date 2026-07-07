@@ -1,3 +1,4 @@
+export * from './auto-instrument.service';
 export * from './decorators';
 export * from './open-telemetry.constants';
 export * from './open-telemetry.interfaces';

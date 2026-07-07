@@ -4,6 +4,8 @@ import {
   Module,
   type Provider,
 } from '@nestjs/common';
+import { DiscoveryModule } from '@nestjs/core';
+import { SpanAutoInstrumentation } from './auto-instrument.service';
 import { OTEL_MODULE_OPTIONS } from './open-telemetry.constants';
 import type {
   OpenTelemetryModuleAsyncOptions,
@@ -24,9 +26,11 @@ export class OpenTelemetryModule {
   static forRoot(options: OpenTelemetryModuleOptions = {}): DynamicModule {
     return {
       module: OpenTelemetryModule,
+      imports: [DiscoveryModule],
       providers: [
         { provide: OTEL_MODULE_OPTIONS, useValue: options },
         TraceService,
+        SpanAutoInstrumentation,
       ],
       exports: [TraceService],
     };
@@ -35,10 +39,11 @@ export class OpenTelemetryModule {
   static forRootAsync(options: OpenTelemetryModuleAsyncOptions): DynamicModule {
     return {
       module: OpenTelemetryModule,
-      imports: options.imports ?? [],
+      imports: [DiscoveryModule, ...(options.imports ?? [])],
       providers: [
         ...OpenTelemetryModule.createAsyncProviders(options),
         TraceService,
+        SpanAutoInstrumentation,
       ],
       exports: [TraceService],
     };

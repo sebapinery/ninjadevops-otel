@@ -20,6 +20,7 @@ consumes the globally-registered `TracerProvider`.
 
 - 🧩 **Injectable `TraceService`** — thin, typed wrapper over the OTel tracing API.
 - 🎯 **`@Span` / `@Traceable`** — trace a method or a whole class with one decorator.
+- 🤖 **Zero-touch `autoInstrument`** — wrap every provider/controller method in a span automatically, with `@NoSpan` to opt out.
 - 🧷 **`@CurrentSpan`** — inject the active span into a route handler.
 - 📦 **Declarative telemetry DTOs** — declare business attributes once, apply them anywhere.
 - ✅ **Correct async semantics** — `Promise` and `Observable` returns are handled; the span always ends, errors are recorded, success is left `UNSET`.
@@ -34,6 +35,7 @@ consumes the globally-registered `TracerProvider`.
 - [Usage](#usage)
   - [`@Span`](#span--trace-a-method)
   - [`@Traceable`](#traceable--trace-every-method-of-a-class)
+  - [`autoInstrument`](#autoinstrument--zero-touch-spans-for-every-method)
   - [`TraceService`](#traceservice--programmatic-access)
   - [`@CurrentSpan`](#currentspan--inject-the-active-span)
   - [Telemetry DTOs](#telemetry-dtos--declarative-business-attributes)
@@ -193,6 +195,72 @@ export class PaymentService {
 Pass a prefix to override the class-name prefix: `@Traceable('payments')` →
 `payments.charge`. The constructor, getters and setters are skipped.
 
+### `autoInstrument` — zero-touch spans for every method
+
+Instead of decorating each service, enable `autoInstrument` on the module: at
+bootstrap the library discovers every provider and controller and wraps their
+methods in a span, so you write no decorators at all.
+
+```ts
+OpenTelemetryModule.forRoot({ autoInstrument: true });
+```
+
+```ts
+@Injectable()
+export class TokensService {
+  // No decorator: span "tokensService.revokeAllAccessToken()" is created
+  // automatically when this method runs.
+  async revokeAllAccessToken(userId: string) {
+    /* nested DB/HTTP calls attach as child spans */
+  }
+}
+```
+
+Spans are named `instance.method()` — the class name is lower-cased so it reads
+like the injected instance (`TokensService` → `tokensService`). This is a naming
+convention, not the actual variable name at the call site (which isn't available
+at runtime).
+
+**What is skipped.** Framework internals, the constructor, getters/setters and
+`_`-prefixed methods are never instrumented. A method that already carries an
+explicit `@Span` (or `@Traceable`) keeps its own name and is not double-wrapped —
+explicit decorators always win.
+
+**Opting out with `@NoSpan`.** Exclude a whole class or a single hot/trivial
+method to avoid span noise:
+
+```ts
+import { NoSpan } from 'ninjadevops-otel';
+
+@Injectable()
+@NoSpan() // never auto-instrument this provider
+export class HealthService {
+  ping() {}
+}
+
+@Injectable()
+export class TokensService {
+  @NoSpan() // …or exclude just one method
+  isExpired(token: string) {}
+}
+```
+
+**Tuning.** Pass an object instead of `true` to adjust behaviour:
+
+```ts
+OpenTelemetryModule.forRoot({
+  autoInstrument: {
+    exclude: [HealthController], // classes (or names) to skip wholesale
+    includePrivate: true,        // also wrap `_`-prefixed methods
+    naming: (cls, method) => `${cls}.${method}`, // custom span name
+  },
+});
+```
+
+> **Note.** Auto-instrumentation mutates provider prototypes once, at boot. It
+> covers Nest-managed providers and controllers (including a provider calling its
+> own `this.method()`); plain functions outside Nest's DI are not affected.
+
 ### `TraceService` — programmatic access
 
 ```ts
@@ -289,10 +357,14 @@ See [docs/telemetry-dtos.md](./docs/telemetry-dtos.md) for the full guide.
 `OpenTelemetryModule.forRoot(options?)` and `forRootAsync(options)` accept
 `OpenTelemetryModuleOptions`:
 
-| Option          | Type     | Default            | Description                                |
-| --------------- | -------- | ------------------ | ------------------------------------------ |
-| `tracerName`    | `string` | `ninjadevops-otel` | Tracer name (instrumentation scope name).  |
-| `tracerVersion` | `string` | `undefined`        | Tracer version (instrumentation scope ver).|
+| Option           | Type                               | Default            | Description                                                              |
+| ---------------- | ---------------------------------- | ------------------ | ------------------------------------------------------------------------ |
+| `tracerName`     | `string`                           | `ninjadevops-otel` | Tracer name (instrumentation scope name).                                |
+| `tracerVersion`  | `string`                           | `undefined`        | Tracer version (instrumentation scope ver).                              |
+| `autoInstrument` | `boolean \| AutoInstrumentOptions` | `false`            | Auto-wrap every provider/controller method in a span. See [`autoInstrument`](#autoinstrument--zero-touch-spans-for-every-method). |
+
+`AutoInstrumentOptions`: `exclude` (`(Type \| string)[]`), `includePrivate`
+(`boolean`), `naming` (`(className, methodName) => string`).
 
 ```ts
 // Async configuration from ConfigService
@@ -318,15 +390,16 @@ OpenTelemetryModule.forRootAsync({
 | `TraceService.startActiveSpanWith(source, …)` | method           | Opens an active span pre-set with a DTO/map's attributes          |
 | `@Span(name?, options?)`                      | method decorator | Wraps a method in an active span                                  |
 | `@Traceable(prefix?)`                         | class decorator  | Applies `@Span` to every method                                   |
+| `@NoSpan()`                                   | class/method dec. | Opts a class or method out of `autoInstrument`                   |
 | `@CurrentSpan()`                              | param decorator  | Injects the active span (or `undefined`)                          |
 | `AbstractTelemetryDto`                        | base class       | `buildSpanMap()` / `buildSpanName()` from decorated members       |
 | `@TelemetryOperation(name)` / `(key, name)`   | class decorator  | Declares the span name and an operation attribute                 |
 | `@TelemetryAttribute(key)`                    | prop decorator   | Maps a DTO property to a span attribute                           |
 
-**Types:** `OpenTelemetryModuleOptions`, `OpenTelemetryModuleAsyncOptions`,
-`OpenTelemetryOptionsFactory`, `TelemetryDto`, `TelemetryAttributes`,
-`TelemetrySource`, plus the helpers `isTelemetryDto`, `toTelemetryAttributes`,
-`resolveSpanName`.
+**Types:** `OpenTelemetryModuleOptions`, `AutoInstrumentOptions`,
+`OpenTelemetryModuleAsyncOptions`, `OpenTelemetryOptionsFactory`, `TelemetryDto`,
+`TelemetryAttributes`, `TelemetrySource`, plus the helpers `isTelemetryDto`,
+`toTelemetryAttributes`, `resolveSpanName`.
 
 Full signatures: [docs/api.md](./docs/api.md).
 
