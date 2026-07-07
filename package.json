@@ -1,6 +1,6 @@
 {
   "name": "ninjadevops-otel",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Tracing-only OpenTelemetry module for NestJS (TraceService, @Span, @Traceable).",
   "author": "Seba Pinery <sebapinery@gmail.com> (https://sebapinery.sitereliabilityengineer.ing/)",
   "license": "Apache-2.0",
